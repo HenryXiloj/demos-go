@@ -1,4 +1,4 @@
-module github.com/henryxiloj/multi-datasource-go
+module multi-datasource-go
 
 go 1.25.1
 

@@ -20,7 +20,7 @@ postgres:
 
 oracle:
   enabled: true
-  dsn: "user=\"system\" password=\"oracle\" connectString=\"127.0.0.1:1521/xe\""
+  dsn: "user=\"app\" password=\"apppw\" connectString=\"127.0.0.1:1521/xe\""
   maxOpenConns: 30
   maxIdleConns: 5
   connMaxLifetimeMin: 30
