@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"time"
 
-	_ "github.com/godror/godror"
+	_ "github.com/sijms/go-ora/v2"
 )
 
 func OpenOracle(dsn string, maxOpen, maxIdle, lifeMin, idleMin int) (*sql.DB, error) {
-	db, err := sql.Open("godror", dsn)
+	db, err := sql.Open("oracle", dsn)
 	if err != nil {
 		return nil, err
 	}
