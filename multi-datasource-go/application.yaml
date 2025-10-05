@@ -1,0 +1,27 @@
+app:
+  httpPort: 9000
+  requestTimeoutSec: 5
+
+mysql:
+  enabled: true
+  dsn: "test:test_pass@tcp(127.0.0.1:3306)/test_db?parseTime=true"
+  maxOpenConns: 50
+  maxIdleConns: 10
+  connMaxLifetimeMin: 30
+  connMaxIdleMin: 5
+
+postgres:
+  enabled: true
+  dsn: "postgres://postgre_test:postgre_test@127.0.0.1:5432/postgre_test?sslmode=disable"
+  maxOpenConns: 50
+  maxIdleConns: 10
+  connMaxLifetimeMin: 30
+  connMaxIdleMin: 5
+
+oracle:
+  enabled: true
+  dsn: "user=\"system\" password=\"oracle\" connectString=\"127.0.0.1:1521/xe\""
+  maxOpenConns: 30
+  maxIdleConns: 5
+  connMaxLifetimeMin: 30
+  connMaxIdleMin: 5
