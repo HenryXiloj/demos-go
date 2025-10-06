@@ -198,7 +198,7 @@ Expected output:
 ```bash
 curl -X POST http://localhost:9000/api/v1/users \
   -H "Content-Type: application/json" \
-  -d '{"name":"Henry","lastName":"Xiloj"}'
+  -d '{"name":"Henry","lastName":"x"}'
 ```
 
 Response:
@@ -212,7 +212,7 @@ Response:
 ```bash
 curl -X POST http://localhost:9000/api/v2/companies \
   -H "Content-Type: application/json" \
-  -d '{"name":"OpenAI"}'
+  -d '{"name":"test"}'
 ```
 
 Response:
@@ -334,3 +334,4 @@ CREATE TABLE brands (
 - Go community for excellent database drivers
 
 - Gin framework for the lightweight HTTP router
+
