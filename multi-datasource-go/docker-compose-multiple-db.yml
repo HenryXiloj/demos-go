@@ -1,15 +1,14 @@
 services:
   oracle:
-    image: gvenzl/oracle-xe:21-slim   # or :11-slim if you truly need 11g semantics
+    image: gvenzl/oracle-xe:21-slim
     container_name: oracle-xe
     environment:
-      ORACLE_PASSWORD: oraclepw         # required
-      # Optional app user:
+      ORACLE_PASSWORD: oraclepw
       APP_USER: app
       APP_USER_PASSWORD: apppw
     ports:
-      - "1521:1521"   # SQL*Net
-      - "5500:5500"   # EM Express (XE 21c)
+      - "1521:1521"
+      - "5500:5500"
     shm_size: 1g
     restart: unless-stopped
     healthcheck:
@@ -19,7 +18,7 @@ services:
       retries: 10
 
   postgres:
-    image: postgres:14.1
+    image: postgres:15
     container_name: postgre_test
     environment:
       POSTGRES_USER: postgre_test
@@ -27,6 +26,19 @@ services:
       POSTGRES_DB: postgre_test
     ports:
       - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Ensure passwords are stored as scram and allow TCP host connections
+    command:
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - listen_addresses=*
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgre_test -d postgre_test -h localhost -p 5432"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   mysql:
     image: mysql:8.4
@@ -44,3 +56,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+volumes:
+  pgdata:

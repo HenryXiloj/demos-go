@@ -1,26 +1,68 @@
+# ========================
+# 🌐 Application Settings
+# ========================
 app:
+  # HTTP port that Gin web server will listen on.
+  # If omitted and no default logic is set in Go, it will bind to a random free port.
   httpPort: 9000
+
+  # Default timeout (in seconds) for each request handled by services.
+  # Used to cancel long-running DB or API operations.
   requestTimeoutSec: 5
 
+# ========================
+# 🐬 MySQL Database Config
+# ========================
 mysql:
+  # Enable or disable the MySQL datasource.
+  # If false, the MySQL connection will not be initialized.
   enabled: true
+
+  # DSN format: user:password@tcp(host:port)/dbname?param=value
+  # parseTime=true ensures DATETIME and TIMESTAMP fields are parsed as time.Time.
   dsn: "test:test_pass@tcp(127.0.0.1:3306)/test_db?parseTime=true"
+
+  # Maximum number of open connections to the database.
   maxOpenConns: 50
+
+  # Maximum number of idle connections to retain in the pool.
   maxIdleConns: 10
+
+  # Maximum lifetime (in minutes) for a single connection before being recycled.
   connMaxLifetimeMin: 30
+
+  # Maximum idle time (in minutes) before a connection is closed.
   connMaxIdleMin: 5
 
+# ========================
+# 🐘 PostgreSQL Database Config
+# ========================
 postgres:
+  # Enable or disable the PostgreSQL datasource.
   enabled: true
+
+  # DSN format: postgres://user:password@host:port/dbname?sslmode=disable
+  # Set sslmode=disable for local dev only; use require or verify-full in production.
   dsn: "postgres://postgre_test:postgre_test@127.0.0.1:5432/postgre_test?sslmode=disable"
+
+  # Connection pool tuning parameters.
   maxOpenConns: 50
   maxIdleConns: 10
   connMaxLifetimeMin: 30
   connMaxIdleMin: 5
 
+# ========================
+# 🏛️ Oracle Database Config
+# ========================
 oracle:
+  # Enable or disable the Oracle datasource.
   enabled: true
+
+  # DSN format: oracle://user:password@host:port/service_name
+  # Example for local XE: oracle://app:apppw@127.0.0.1:1521/xepdb1
   dsn: "oracle://app:apppw@127.0.0.1:1521/xepdb1"
+
+  # Connection pool configuration.
   maxOpenConns: 30
   maxIdleConns: 5
   connMaxLifetimeMin: 30

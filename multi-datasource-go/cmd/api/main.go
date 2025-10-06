@@ -16,22 +16,27 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// main is the application entry point.
+// It loads configuration, initializes database pools, wires handlers, and starts the HTTP server.
 func main() {
+	// Load configuration from application.yaml and environment variables.
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	// Open pools
+	// Open connection pools for each enabled datasource.
 	var (
-		mysqlDB  = mustMySQL(cfg)
-		pgPool   = mustPG(cfg)
-		oracleDB = mustOracle(cfg)
+		mysqlDB  = mustMySQL(cfg)  // MySQL (users)
+		pgPool   = mustPG(cfg)     // PostgreSQL (companies)
+		oracleDB = mustOracle(cfg) // Oracle (brands)
 	)
 
-	// ✅ call this as a normal statement (not in the var block)
+	// Create tables for local development/demo if they don't already exist.
+	// This is a convenience for quick starts; remove in production.
 	createTables(mysqlDB, pgPool, oracleDB)
 
+	// Build HTTP handlers with repositories and request timeout.
 	h := &http.Handlers{
 		Users:     repo.NewMySQLUserRepo(mysqlDB),
 		Companies: repo.NewPGCompanyRepo(pgPool),
@@ -39,10 +44,13 @@ func main() {
 		Timeout:   time.Duration(cfg.App.RequestTimeoutSec) * time.Second,
 	}
 
+	// Initialize Gin router and register routes.
 	r := gin.New()
+	// Add recovery middleware; consider adding gin.Logger() for request logs.
 	r.Use(gin.Recovery())
 	h.Register(r)
 
+	// Start HTTP server on configured port.
 	addr := ":" + itoa(cfg.App.HTTPPort)
 	log.Printf("listening on %s", addr)
 	if err := r.Run(addr); err != nil {
@@ -50,8 +58,12 @@ func main() {
 	}
 }
 
+// itoa converts an int to string using fmt.Sprintf.
+// Small helper to avoid importing strconv explicitly.
 func itoa(i int) string { return fmt.Sprintf("%d", i) }
 
+// mustMySQL opens a MySQL *sql.DB pool using configuration values.
+// It terminates the program if the connection cannot be established.
 func mustMySQL(cfg *config.Config) *sql.DB {
 	if !cfg.MySQL.Enabled {
 		return nil
@@ -69,6 +81,8 @@ func mustMySQL(cfg *config.Config) *sql.DB {
 	return dbx
 }
 
+// mustPG opens a pgxpool.Pool for PostgreSQL using configuration values.
+// It terminates the program if the pool cannot be created.
 func mustPG(cfg *config.Config) *pgxpool.Pool {
 	if !cfg.Postgres.Enabled {
 		return nil
@@ -78,7 +92,7 @@ func mustPG(cfg *config.Config) *pgxpool.Pool {
 		context.Background(),
 		cfg.Postgres.DSN,
 		cfg.Postgres.MaxOpenConns,       // maxConns
-		cfg.Postgres.MaxIdleConns,       // use idle as a reasonable minConns
+		cfg.Postgres.MaxIdleConns,       // minConns (reasonable proxy from idle)
 		cfg.Postgres.ConnMaxLifetimeMin, // lifeMin
 		cfg.Postgres.ConnMaxIdleMin,     // idleMin
 	)
@@ -88,6 +102,8 @@ func mustPG(cfg *config.Config) *pgxpool.Pool {
 	return pool
 }
 
+// mustOracle opens an Oracle *sql.DB pool using configuration values.
+// It terminates the program if the connection cannot be established.
 func mustOracle(cfg *config.Config) *sql.DB {
 	if !cfg.Oracle.Enabled {
 		return nil
@@ -105,49 +121,52 @@ func mustOracle(cfg *config.Config) *sql.DB {
 	return dbx
 }
 
+// createTables ensures demo/dev tables exist across all configured databases.
+// For production deployments, prefer migrations managed by a tool (e.g., goose, migrate, flyway).
 func createTables(mysqlDB *sql.DB, pgPool *pgxpool.Pool, oracleDB *sql.DB) {
+	// Use a bounded context so DDLs don't hang indefinitely.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// --- MySQL ---
+	// --- MySQL (users table) ---
 	if mysqlDB != nil {
-		_, err := mysqlDB.ExecContext(ctx, `
+		// Create the database (no-op if it already exists); helpful for local dev.
+		if _, err := mysqlDB.ExecContext(ctx, `
 			CREATE DATABASE IF NOT EXISTS test_db;
-		`)
-		if err != nil {
+		`); err != nil {
 			log.Printf("mysql create db: %v", err)
 		}
-		_, err = mysqlDB.ExecContext(ctx, `
+		// Create users table if missing.
+		if _, err := mysqlDB.ExecContext(ctx, `
 			CREATE TABLE IF NOT EXISTS users (
 				id BIGINT AUTO_INCREMENT PRIMARY KEY,
 				name VARCHAR(100) NOT NULL,
 				last_name VARCHAR(100) NOT NULL
 			);
-		`)
-		if err != nil {
+		`); err != nil {
 			log.Printf("mysql create table: %v", err)
 		}
 		log.Println("✅ ensured MySQL table: users")
 	}
 
-	// --- PostgreSQL ---
+	// --- PostgreSQL (companies table) ---
 	if pgPool != nil {
-		_, err := pgPool.Exec(ctx, `
+		if _, err := pgPool.Exec(ctx, `
 			CREATE TABLE IF NOT EXISTS companies (
 				id BIGSERIAL PRIMARY KEY,
 				name TEXT NOT NULL
 			);
-		`)
-		if err != nil {
+		`); err != nil {
 			log.Printf("postgres create table: %v", err)
 		} else {
 			log.Println("✅ ensured Postgres table: companies")
 		}
 	}
 
-	// --- Oracle ---
+	// --- Oracle (brands table) ---
 	if oracleDB != nil {
-		_, err := oracleDB.ExecContext(ctx, `
+		// Use PL/SQL block to create table only if it doesn't exist (ignore ORA-00955).
+		if _, err := oracleDB.ExecContext(ctx, `
 			BEGIN
 				EXECUTE IMMEDIATE 'CREATE TABLE brands (
 					id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
@@ -155,10 +174,9 @@ func createTables(mysqlDB *sql.DB, pgPool *pgxpool.Pool, oracleDB *sql.DB) {
 				)';
 			EXCEPTION
 				WHEN OTHERS THEN
-					IF SQLCODE != -955 THEN RAISE; END IF; -- ORA-00955 = already exists
+					IF SQLCODE != -955 THEN RAISE; END IF; -- ORA-00955 = name is already used by an existing object
 			END;
-		`)
-		if err != nil {
+		`); err != nil {
 			log.Printf("oracle create table: %v", err)
 		} else {
 			log.Println("✅ ensured Oracle table: brands")
