@@ -1,38 +1,57 @@
+# OpenAPI version used by this document
 openapi: 3.0.3
+
 info:
+  # Human-friendly API name shown in docs
   title: Sample API
+  # Semantic version of the API contract (not your app build)
   version: 1.0.0
+
 paths:
+  # Collection resource for items
   /items:
+    # List all items
     get:
+      # Unique identifier for code generators & tooling
       operationId: getItems
       responses:
-        '200':
+        '200':                      # HTTP 200 OK
           description: OK
           content:
             application/json:
               schema:
+                # Response is an array of Item objects
                 type: array
                 items: { $ref: '#/components/schemas/Item' }
+
+    # Create a new item
     post:
       operationId: createItem
       requestBody:
-        required: true
+        required: true              # Body is mandatory
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/ItemCreate' }
+            schema:
+              # Request body must match ItemCreate shape
+              $ref: '#/components/schemas/ItemCreate'
       responses:
-        '201':
+        '201':                      # HTTP 201 Created
           description: Created
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Item' }
+              schema:
+                # Return the created Item
+                $ref: '#/components/schemas/Item'
+
+  # Single-item resource with path parameter
   /items/{id}:
     parameters:
       - name: id
-        in: path
+        in: path                    # Path parameter (part of URL)
         required: true
-        schema: { type: integer, format: int64 }
+        schema: { type: integer, format: int64 }  # 64-bit integer ID
+
+    # Fetch one item by ID
     get:
       operationId: getItemById
       responses:
@@ -41,7 +60,9 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Item' }
-        '404': { description: Not Found }
+        '404': { description: Not Found } # If ID doesn’t exist
+
+    # Update an existing item by ID (full update)
     put:
       operationId: updateItem
       requestBody:
@@ -56,23 +77,31 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Item' }
         '404': { description: Not Found }
+
+    # Delete an item by ID
     delete:
       operationId: deleteItem
       responses:
-        '204': { description: No Content }
+        '204': { description: No Content } # Succeeds with empty body
+
 components:
   schemas:
+    # Full Item as stored/returned by the API
     Item:
       type: object
-      required: [id, name]
+      required: [id, name]          # Fields that must always be present
       properties:
-        id:   { type: integer, format: int64 }
-        name: { type: string }
+        id:   { type: integer, format: int64 }  # Server-assigned ID
+        name: { type: string }                   # Human name
+
+    # Shape required to create an item (client input)
     ItemCreate:
       type: object
       required: [name]
       properties:
         name: { type: string }
+
+    # Shape required to update an item (client input)
     ItemUpdate:
       type: object
       required: [name]

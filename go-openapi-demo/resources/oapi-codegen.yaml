@@ -1,5 +1,15 @@
+# Package name for the generated Go code
 package: api
+
+# Where to write the generated file
 output: api/gen.go
+
+# Old-style list syntax for generators (supports 'spec')
+# This will generate:
+# - types:        Go structs for schemas
+# - chi-server:   Chi router server interfaces & wiring
+# - strict-server:Strict* wrappers (typed request/response helpers)
+# - spec:         Embedded OpenAPI (gives you api.GetSwagger())
 generate:
   - types
   - chi-server
